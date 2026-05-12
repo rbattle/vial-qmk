@@ -27,6 +27,9 @@
 #define SPLIT_LAYER_STATE_ENABLE
 #define SPLIT_LED_STATE_ENABLE
 
+#define STARTUP_SONG SONG(NO_SOUND)
+#define AUDIO_CLICKY_ON false
+
 #define VIAL_KEYBOARD_UID {0x96, 0xA9, 0x55, 0x70, 0x76, 0x04, 0xB0, 0x3F}
 
 // Hold Escape + Enter to unlock Vial security features

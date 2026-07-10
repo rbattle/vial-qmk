@@ -50,6 +50,16 @@ bool ctrl_displaying = false;
 
 uint8_t last_layer = 128;
 
+void keyboard_pre_init_user(void) {
+    xprintf("pre_init: start\n");
+}
+
+void keyboard_post_init_user(void) {
+    xprintf("post_init: complete master=%d\n", is_keyboard_master());
+    xprintf("post_init: rgb_matrix enabled=%d mode=%d val=%d\n",
+            rgb_matrix_is_enabled(), rgb_matrix_get_mode(), rgb_matrix_get_val());
+}
+
 void reset_ctrl_highlight(void) {
     xprintf("set ctrl_timer to 0\n");
     ctrl_displaying = false;

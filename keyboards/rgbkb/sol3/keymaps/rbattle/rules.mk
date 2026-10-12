@@ -55,3 +55,8 @@ NUM_LOCK_ENABLE = yes
 VIA_ENABLE = yes
 VIAL_ENABLE = yes
 VIALRGB_ENABLE = yes
+
+# Wear-leveling EEPROM (the default for STM32F303) can stall during Vial's
+# first-boot EEPROM reset and kill USB on this board. Use the older legacy
+# emulated-flash driver instead, per github.com/jchenVT/vial-qmk (sol3-vial).
+EEPROM_DRIVER = legacy_stm32_flash

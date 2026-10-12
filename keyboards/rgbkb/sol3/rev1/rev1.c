@@ -10,9 +10,28 @@
 #include "rev1.h"
 #include "transactions.h"
 #include "split_util.h"
+#include <hal.h>
+#include <math.h>
 
 #define NUMBER_OF_TOUCH_ENCODERS 2
 #define TOUCH_ENCODER_OPTIONS TOUCH_SEGMENTS + 2
+
+// STM32-specific IWDG config calculations (see keyboards/planck/rev7/matrix.c)
+// timeout = 31.25us * PR * (RL + 1)
+#define _STM32_IWDG_LSI(us) ((us) / 31.25)
+#define STM32_IWDG_PR_US(us) (uint8_t)(log(_STM32_IWDG_LSI(us)) / log(2) - 11)
+#define STM32_IWDG_PR_S(s) STM32_IWDG_PR_US((s) * 1000000.0)
+#define _STM32_IWDG_SCALAR(us) (2 << ((uint8_t)STM32_IWDG_PR_US(us) + 1))
+#define STM32_IWDG_RL_US(us) (uint64_t)(_STM32_IWDG_LSI(us)) / _STM32_IWDG_SCALAR(us)
+#define STM32_IWDG_RL_S(s) STM32_IWDG_RL_US((s) * 1000000.0)
+
+// Independent hardware watchdog: recovers from a genuine MCU hang (e.g. a
+// wear-leveling flash consolidation gone wrong) that the software split
+// watchdog in split_util.c can't catch, since that relies on the main loop
+// still running. Fed every housekeeping_task_kb() call on both halves.
+#ifndef SOL3_WATCHDOG_TIMEOUT
+#    define SOL3_WATCHDOG_TIMEOUT 3.0
+#endif
 
 typedef struct PACKED {
     uint8_t r;
@@ -265,7 +284,34 @@ void keyboard_post_init_kb(void) {
     keyboard_post_init_user();
 }
 
+void matrix_init_kb(void) {
+#ifndef SOL3_WATCHDOG_DISABLE
+    wdgInit();
+
+    static WDGConfig wdgcfg;
+    wdgcfg.pr   = STM32_IWDG_PR_S(SOL3_WATCHDOG_TIMEOUT);
+    wdgcfg.rlr  = STM32_IWDG_RL_S(SOL3_WATCHDOG_TIMEOUT);
+    wdgcfg.winr = STM32_IWDG_WIN_DISABLED;
+    wdgStart(&WDGD1, &wdgcfg);
+#endif
+    matrix_init_user();
+}
+
+// While USB is suspended (e.g. a KVM switched away) the main loop is stuck in
+// protocol_pre_task() and never reaches housekeeping_task_kb(), but it calls
+// this every ~17ms, so keep feeding the watchdog here or it would reset the
+// board, which would then reboot as a slave with no USB host.
+void suspend_power_down_kb(void) {
+#ifndef SOL3_WATCHDOG_DISABLE
+    wdgReset(&WDGD1);
+#endif
+    suspend_power_down_user();
+}
+
 void housekeeping_task_kb(void) {
+#ifndef SOL3_WATCHDOG_DISABLE
+    wdgReset(&WDGD1);
+#endif
     touch_encoder_update(TOUCH_ENCODER_SYNC);
     rgb_menu_update(RGB_MENU_SYNC);
 }

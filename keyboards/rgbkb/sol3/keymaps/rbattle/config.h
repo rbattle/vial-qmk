@@ -20,6 +20,12 @@
 // #define RGB_MATRIX_TIMEOUT 1200000
 #define RGB_MATRIX_SLEEP
 
+// Both halves' LEDs run off one USB port; at full brightness the combined
+// draw browns out the split link and the board freezes. Same cap as
+// rgbkb/sol's config.h.
+#define RGB_MATRIX_MAXIMUM_BRIGHTNESS 120
+#define RGB_MATRIX_DEFAULT_VAL 80
+
 #define STM32_ONBOARD_EEPROM_SIZE 2048
 
 #undef TOUCH_RESOLUTION
